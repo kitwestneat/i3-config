@@ -1,0 +1,64 @@
+#!/bin/bash
+
+NORMAL="#FFFFFF"
+WARN="#FFFF00"
+ERR="#FF0000"
+INT=4
+
+vol() {
+NAME="volume"
+TEXT="♪ "`amixer sget Master | grep '\[[0-9]*%\]' -o -m1`
+COLOR=$NORMAL
+if amixer sget Master | grep -q off; then 
+	TEXT="♪ -MUTE-" 
+	COLOR=$ERR
+fi
+}
+
+power() {
+p_dir=/sys/class/power_supply/BAT0
+percent=`echo $(($(cat $p_dir/energy_now)*100 / $(cat $p_dir/energy_full)))`
+
+NAME="power"
+TEXT="$(cat $p_dir/status) $percent%"
+COLOR=$NORMAL
+[ $percent -lt 100 ] && COLOR=$WARN
+[ $percent -lt 10 ] && COLOR=$ERR
+}
+
+datetime() {
+NAME="datetime"
+TEXT=$(date +"%Y.%m.%d %I:%M %P")
+COLOR="#C080DD"
+}
+
+loadavg() {
+NAME="load"
+TEXT=$(cat /proc/loadavg | awk '{print $1}') 
+COLOR=$NORMAL
+[ $(echo "$TEXT > 1" | bc -l) == 1 ] && COLOR=$WARN
+[ $(echo "$TEXT > 4" | bc -l) == 1 ] && COLOR=$ERR
+}
+
+do_out() {
+OUT=$OUT'{"name":"'$NAME'","full_text":"'$TEXT'","color":"'$COLOR'"}'
+#echo -n '{"name":"'$NAME'", "full_text": "'$TEXT'"}'
+[ "$LAST" != "1" ] && OUT="$OUT,"
+}
+
+echo '{"version":1}'
+echo '['
+echo '[]'
+x=0
+while true; do
+OUT=",["
+power; do_out
+vol; do_out
+loadavg; do_out
+datetime; LAST=1 do_out
+#TEXT="$x" COLOR=$NORMAL LAST=1 do_out
+
+echo "$OUT]"
+sleep $INT
+x=$((x+1))
+done

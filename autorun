@@ -1,0 +1,8 @@
+#/bin/bash
+setxkbmap -option caps:super
+setxkbmap -option compose:ralt
+syndaemon -t -k -i 2 -d &
+xsetroot -solid '#202030' &
+parcellite &
+xmodmap -e 'keysym Delete = Delete Insert'
+synclient TapButton2=2 TapButton1=0
