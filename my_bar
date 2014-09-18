@@ -5,6 +5,17 @@ WARN="#FFFF00"
 ERR="#FF0000"
 INT=4
 
+get_weather() {
+curl http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=KNYNEWYO94 > /tmp/weather.out 2> /dev/null
+}
+weather() {
+let weather_count++
+[ "$weather_count" == "4" ] && weather_count=0 && get_weather
+NAME="weather"
+TEXT=$(grep temp_f /tmp/weather.out | sed -e 's/.*>\([^<]*\)<.*/\1 F/')
+COLOR="#3366FF"
+}
+
 vol() {
 NAME="volume"
 TEXT="♪ "`amixer sget Master | grep '\[[0-9]*%\]' -o -m1`
@@ -24,6 +35,7 @@ TEXT="$(cat $p_dir/status) $percent%"
 COLOR=$NORMAL
 [ $percent -lt 100 ] && COLOR=$WARN
 [ $percent -lt 10 ] && COLOR=$ERR
+true
 }
 
 datetime() {
@@ -52,7 +64,8 @@ echo '[]'
 x=0
 while true; do
 OUT=",["
-power; do_out
+[ -e /sys/class/power_supply/BAT0 ] && power && do_out
+weather; do_out
 vol; do_out
 loadavg; do_out
 datetime; LAST=1 do_out
